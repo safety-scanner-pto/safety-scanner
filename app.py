@@ -49,7 +49,7 @@ import requests
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "scanner.db")
 
-VT_API_KEY = os.environ.get("VT_API_KEY", "")
+VT_API_KEY = os.environ.get("VT_API_KEY", "") or os.environ.get("VIRUS_API_KEY", "")
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "changeme")
 SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
@@ -131,7 +131,10 @@ def is_blocked(url_str):
 def index():
     return send_from_directory(BASE_DIR, "safety-scanner.html")
 
-
+@app.route("/api/antivirus/scan")
+def antivirus_api():
+    return vt_check()
+  
 # ------------------------------------------------------------------ #
 # /vt - VirusTotal URL check
 # ------------------------------------------------------------------ #
