@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Safety Scanner - Check Link, QR or APK</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#080a14;--fg:#e2e8f0;--mut:#94a3b8;--g:linear-gradient(90deg,#6366f1,#a855f7,#ec4899);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(600px at 20% 10%,rgba(99,102,241,.25),transparent),radial-gradient(600px at 80% 90%,rgba(236,72,153,.2),transparent),var(--bg)}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:16px 6%;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{font-weight:900;font-size:21px;background:linear-gradient(90deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#donate{display:none;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:#fff;border:0;padding:9px 20px;border-radius:24px;font-weight:800;cursor:pointer}
+.hero{text-align:center;padding:56px 20px 10px}
+.hero h1{font-size:48px;font-weight:900;line-height:1.08;letter-spacing:-1.5px}
+.hero p{color:var(--mut);margin:16px auto 0;max-width:620px;font-size:15px;line-height:1.6}
+.search{max-width:760px;margin:28px auto 16px;display:flex;gap:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:8px}
+.search input{flex:1;min-width:0;background:transparent;border:0;color:#fff;padding:12px 14px;outline:0;font-size:16px}
+.search button{background:var(--g);border:0;color:#fff;padding:12px 22px;border-radius:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.res{max-width:760px;margin:12px auto;padding:16px;border-radius:12px;display:none;text-align:left;line-height:1.6;font-size:14px}
+.res.low{display:block;background:rgba(16,185,129,.15);border:1px solid #10b981;color:#6ee7b7}
+.res.mid{display:block;background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#fcd34d}
+.res.high{display:block;background:rgba(239,68,68,.15);border:1px solid #ef4444;color:#fca5a5}
+.res b.t{font-size:17px;display:block;margin-bottom:4px}
+.res ul{margin:6px 0 0 18px}
+.cards{max-width:1050px;margin:36px auto;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:0 4%}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:26px;text-align:center}
+.card .ic{width:62px;height:62px;margin:0 auto 14px;border-radius:16px;display:grid;place-items:center;font-size:28px;background:linear-gradient(135deg,#6366f1,#ec4899)}
+.card p{color:var(--mut);font-size:13px;margin-top:8px;min-height:50px}
+.card .act{margin-top:16px;border:1px solid #6366f1;background:transparent;color:#fff;padding:9px 20px;border-radius:22px;cursor:pointer;font-weight:600}
+.out{margin-top:12px;font-size:12px;color:var(--mut);word-break:break-word;text-align:left}
+.out b{color:#fff}
+.note{max-width:760px;margin:10px auto 40px;padding:0 20px;text-align:center;color:#64748b;font-size:12px;line-height:1.6}
+@media(max-width:800px){.cards{grid-template-columns:1fr}.hero h1{font-size:32px}.hero{padding-top:36px}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="nav"><div class="logo">🛡️ Safety Scanner</div><button id="donate">Donate ❤️</button></div>
+
+<div class="hero">
+<h1>Check Any Link, QR or APK in Seconds</h1>
+<p>Spot phishing signs, risky QR codes and suspicious APK permissions. Everything runs in your browser, nothing is uploaded.</p>
+<div class="search">
+<input id="link" placeholder="Paste a link here... https://example.com" autocomplete="off" inputmode="url">
+<button id="scanBtn">🔍 Scan Link</button>
+</div>
+<div id="res" class="res"></div>
+</div>
+
+<div class="cards">
+<div class="card"><div class="ic">◫</div><h3>QR Scanner</h3><p>Upload a QR image. We decode it and check the link inside.</p><button class="act" id="qrBtn">Scan QR</button><input id="qr" type="file" hidden accept="image/*"><div class="out" id="qrOut"></div></div>
+<div class="card"><div class="ic">🔗</div><h3>Link Scanner</h3><p>Checks URL for missing HTTPS, IP hosts, lookalike brands, shorteners and scam words.</p><button class="act" id="linkBtn">Check Link</button></div>
+<div class="card"><div class="ic">📱</div><h3>APK Analyzer</h3><p>Reads the APK locally: permissions, file hash and structure. No upload.</p><button class="act" id="apkBtn">Analyze APK</button><input id="apk" type="file" hidden accept=".apk,application/vnd.android.package-archive"><div class="out" id="apkOut"></div></div>
+</div>
+
+<div class="note">This is a heuristic checker, not a guarantee. A "low risk" result does not mean a link or app is safe, so for anything important also check on virustotal.com.</div>
+
+<script>
+const UPI=''; // e.g. 'yourname@okicici' to show the Donate button
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+if(UPI){const d=$('donate');d.style.display='block';d.onclick=()=>location.href='upi://pay?pa='+encodeURIComponent(UPI)+'&pn=SafetyScanner&cu=INR'}
+
+const SHORT=/^(bit\.ly|tinyurl\.com|t\.co|goo\.gl|is\.gd|cutt\.ly|rb\.gy|ow\.ly|shorturl\.at)$/;
+const BADTLD=/\.(zip|mov|tk|ml|ga|cf|gq|xyz|top|click|work|country|loan|icu)$/;
+const BRANDS=['paypal','google','amazon','paytm','phonepe','sbi','hdfc','icici','facebook','instagram','whatsapp','netflix','apple','microsoft','flipkart'];
+
+function analyze(raw){
+  let s=0,r=[],url;
+  let t=raw.trim();
+  if(!/^[a-z][a-z0-9+.-]*:/i.test(t)){t='http://'+t;r.push('No scheme given, assumed http')}
+  try{url=new URL(t)}catch(e){return{err:'That does not look like a valid link.'}}
+  const h=url.hostname.toLowerCase(),full=t.toLowerCase();
+  if(!['http:','https:'].includes(url.protocol)){s+=4;r.push('Unusual link type ('+url.protocol+')')}
+  else if(url.protocol==='http:'){s+=2;r.push('No HTTPS')}
+  if(/^\d{1,3}(\.\d{1,3}){3}$/.test(h)||/^\[/.test(h)){s+=3;r.push('Uses an IP address instead of a domain')}
+  if(url.username||url.password||t.replace(/^[a-z]+:\/\//i,'').split('/')[0].includes('@')){s+=3;r.push('Contains @ (hides the real destination)')}
+  if(h.includes('xn--')){s+=3;r.push('Punycode domain (possible lookalike characters)')}
+  if(SHORT.test(h)){s+=2;r.push('URL shortener hides the destination')}
+  if(BADTLD.test(h)){s+=2;r.push('Domain ending often abused for scams')}
+  if(h.split('.').length>4){s+=1;r.push('Many subdomains')}
+  if(full.length>100){s+=1;r.push('Very long URL')}
+  if((h.match(/-/g)||[]).length>=3){s+=1;r.push('Many hyphens in domain')}
+  const root=h.split('.').slice(-2).join('.');
+  for(const b of BRANDS){if(h.includes(b)&&!(root.startsWith(b+'.'))){s+=3;r.push('Uses brand name "'+b+'" on a different domain');break}}
+  if(/free-?money|lottery|jackpot|verify|bonus|giveaway|kyc|update-?account|claim|prize|winner|login-?secure/.test(full)){s+=3;r.push('Scam-style words in URL')}
+  if(/\.(apk|exe|scr|bat|msi)(\?|$)/.test(url.pathname.toLowerCase())){s+=2;r.push('Links straight to an installable file')}
+  return{s:Math.min(s,10),r};
+}
+function render(el,title,cls,list,extra){
+  el.className='res '+cls;
+  el.innerHTML='<b class="t">'+title+'</b>'+(list.length?'<ul>'+list.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<div>No warning signs found in the link itself.</div>')+(extra||'');
+}
+function checkLink(){
+  const u=$('link').value;
+  if(!u.trim()){$('link').focus();return}
+  const a=analyze(u),el=$('res');
+  if(a.err){render(el,'⚠️ '+a.err,'mid',[]);return}
+  const cls=a.s>=5?'high':a.s>=3?'mid':'low';
+  const t=a.s>=5?'🔴 High risk':a.s>=3?'🟠 Medium risk':'🟢 Low risk';
+  render(el,t+' ('+a.s+'/10)',cls,a.r);
+}
+$('scanBtn').onclick=$('linkBtn').onclick=checkLink;
+$('link').addEventListener('keydown',e=>{if(e.key==='Enter')checkLink()});
+
+// QR
+$('qrBtn').onclick=()=>$('qr').click();
+$('qr').onchange=async()=>{
+  const f=$('qr').files[0],o=$('qrOut');if(!f)return;
+  o.textContent='⏳ Decoding...';
+  try{
+    const bmp=await createImageBitmap(f);
+    const max=1400,k=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
+    const x=c.getContext('2d');x.drawImage(bmp,0,0,c.width,c.height);
+    const d=x.getImageData(0,0,c.width,c.height);
+    const q=jsQR(d.data,d.width,d.height,{inversionAttempts:'attemptBoth'});
+    if(!q){o.textContent='❌ No QR code found. Try a clearer, closer image.';return}
+    o.innerHTML='Decoded: <b>'+esc(q.data)+'</b>';
+    if(/^[a-z][a-z0-9+.-]*:/i.test(q.data)||/^[\w-]+(\.[\w-]+)+/.test(q.data)){
+      $('link').value=q.data;checkLink();window.scrollTo({top:0,behavior:'smooth'});
+    }else o.innerHTML+='<br>Not a web link, so nothing to scan.';
+  }catch(e){o.textContent='❌ Could not read this image.'}
+  $('qr').value='';
+};
+
+// APK
+const PERM={SEND_SMS:3,RECEIVE_SMS:2,READ_SMS:3,BIND_ACCESSIBILITY_SERVICE:4,SYSTEM_ALERT_WINDOW:2,REQUEST_INSTALL_PACKAGES:2,BIND_DEVICE_ADMIN:3,READ_CONTACTS:1,READ_CALL_LOG:2,RECORD_AUDIO:1,READ_PHONE_STATE:1,QUERY_ALL_PACKAGES:1,RECEIVE_BOOT_COMPLETED:1,ACCESS_FINE_LOCATION:1,CAMERA:1,READ_EXTERNAL_STORAGE:0,MANAGE_EXTERNAL_STORAGE:2,BIND_NOTIFICATION_LISTENER_SERVICE:3,CALL_PHONE:1,PROCESS_OUTGOING_CALLS:2};
+$('apkBtn').onclick=()=>$('apk').click();
+$('apk').onchange=async()=>{
+  const f=$('apk').files[0],o=$('apkOut');if(!f)return;
+  o.textContent='⏳ Analyzing...';
+  try{
+    const buf=await f.arrayBuffer();
+    const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',buf))].map(b=>b.toString(16).padStart(2,'0')).join('');
+    const zip=await JSZip.loadAsync(buf);
+    const names=Object.keys(zip.files);
+    const man=zip.file('AndroidManifest.xml');
+    if(!man){o.textContent='❌ Not a valid APK (no AndroidManifest.xml).';return}
+    const mb=await man.async('uint8array');
+    const found=new Set();
+    const re=/android\.permission\.[A-Z_]+/g;
+    for(const enc of ['utf-16le','latin1']){(new TextDecoder(enc).decode(mb).match(re)||[]).forEach(p=>found.add(p.replace('android.permission.','')))}
+    const dex=names.filter(n=>/^classes\d*\.dex$/.test(n)).length;
+    const abis=[...new Set(names.filter(n=>n.startsWith('lib/')).map(n=>n.split('/')[1]))];
+    const signed=names.some(n=>/^META-INF\/.+\.(RSA|DSA|EC)$/i.test(n));
+    let s=0,flags=[];
+    found.forEach(p=>{const w=PERM[p]||0;if(w>=2){flags.push(p)}s+=w});
+    if(!signed){s+=2}
+    if(dex>3)s+=1;
+    s=Math.min(s,10);
+    const verdict=s>=6?'🔴 High risk':s>=3?'🟠 Medium risk':'🟢 Low risk';
+    o.innerHTML='<b>'+esc(f.name)+'</b> ('+(f.size/1048576).toFixed(2)+' MB)<br>'+verdict+' ('+s+'/10)'
+      +'<br>Permissions found: '+found.size
+      +(flags.length?'<br>⚠️ Sensitive: '+esc(flags.join(', ')):'')
+      +'<br>DEX files: '+dex+(abis.length?' • Native: '+esc(abis.join(', ')):'')
+      +'<br>Signature: '+(signed?'present':'<b>missing</b>')
+      +'<br>SHA-256: <span style="font-family:monospace;font-size:10px">'+hash+'</span>'
+      +'<br><a style="color:#a5b4fc" target="_blank" rel="noopener" href="https://www.virustotal.com/gui/file/'+hash+'">Look up this hash on VirusTotal ↗</a>';
+  }catch(e){o.textContent='❌ Could not read this file. Is it a valid APK?'}
+  $('apk').value='';
+};
+</script>
+</body>
+</html>
