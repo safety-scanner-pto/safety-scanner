@@ -109,24 +109,33 @@ $('scanBtn').onclick=$('linkBtn').onclick=checkLink;
 $('link').addEventListener('keydown',e=>{if(e.key==='Enter')checkLink()});
 
 // QR
-$('qrBtn').onclick=()=>$('qr').click();
-$('qr').onchange=async()=>{
-  const f=$('qr').files[0],o=$('qrOut');if(!f)return;
-  o.textContent='⏳ Decoding...';
+$('#qrBtn').onclick=()=>$('#qr').click();
+$('#qr').onchange=async()=>{
+ const f=$('#qr').files[0],o=$('#qrOut');if(!f)return;
+ o.textContent='⏳ Decoding...';
+ try{
+  let w,h,d;
   try{
     const bmp=await createImageBitmap(f);
     const max=1400,k=Math.min(1,max/Math.max(bmp.width,bmp.height));
     const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
     const x=c.getContext('2d');x.drawImage(bmp,0,0,c.width,c.height);
-    const d=x.getImageData(0,0,c.width,c.height);
-    const q=jsQR(d.data,d.width,d.height,{inversionAttempts:'attemptBoth'});
-    if(!q){o.textContent='❌ No QR code found. Try a clearer, closer image.';return}
-    o.innerHTML='Decoded: <b>'+esc(q.data)+'</b>';
-    if(/^[a-z][a-z0-9+.-]*:/i.test(q.data)||/^[\w-]+(\.[\w-]+)+/.test(q.data)){
-      $('link').value=q.data;checkLink();window.scrollTo({top:0,behavior:'smooth'});
-    }else o.innerHTML+='<br>Not a web link, so nothing to scan.';
-  }catch(e){o.textContent='❌ Could not read this image.'}
-  $('qr').value='';
+    d=x.getImageData(0,0,c.width,c.height);w=c.width;h=c.height;
+  }catch{
+    const img=new Image();img.src=URL.createObjectURL(f);await img.decode();
+    const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+    const x=c.getContext('2d');x.drawImage(img,0,0);
+    d=x.getImageData(0,0,c.width,c.height);w=c.width;h=c.height;
+  }
+  let q=jsQR(d.data,w,h);
+  if(!q)q=jsQR(d.data,w,h,{inversionAttempts:"attemptBoth"});
+  if(!q){o.textContent='❌ No QR code found. Try a clearer image.';return;}
+  o.innerHTML=`Decoded: <b>${q.data}</b>`;
+  if(/^https?:\/\//i.test(q.data)){
+    $('link').value=q.data;checkLink();window.scrollTo({top:0,behavior:'smooth'});
+  }else{o.innerHTML+='<br>Not a web link, so nothing to scan.';}
+ }catch(e){o.textContent='❌ Could not read this image.';}
+ $('#qr').value='';
 };
 
 // APK
