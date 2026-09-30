@@ -127,7 +127,14 @@ $('#qr').onchange=async()=>{
     const x=c.getContext('2d');x.drawImage(img,0,0);
     d=x.getImageData(0,0,c.width,c.height);w=c.width;h=c.height;
   }
-  let q=jsQR(d.data,w,h);
+  let q=jsQR(d.data,w,h,{inversionAttempts:"attemptBoth"});
+if(!q){
+ c.width=w*2;c.height=h*2;
+ ctx.imageSmoothingEnabled=false;
+ ctx.drawImage(canvas,0,0,w*2,h*2);
+ let d2=ctx.getImageData(0,0,w*2,h*2);
+ q=jsQR(d2.data,w*2,h*2,{inversionAttempts:"attemptBoth"});
+}
   if(!q)q=jsQR(d.data,w,h,{inversionAttempts:"attemptBoth"});
   if(!q){o.textContent='❌ No QR code found. Try a clearer image.';return;}
   o.innerHTML=`Decoded: <b>${q.data}</b>`;
