@@ -108,43 +108,48 @@ function checkLink(){
 $('scanBtn').onclick=$('linkBtn').onclick=checkLink;
 $('link').addEventListener('keydown',e=>{if(e.key==='Enter')checkLink()});
 
-// QR
-$('#qrBtn').onclick=()=>$('#qr').click();
-$('#qr').onchange=async()=>{
- const f=$('#qr').files[0],o=$('#qrOut');if(!f)return;
- o.textContent='⏳ Decoding...';
- try{
-  let w,h,d;
+// QR;}
+  
+$('#qrBtn').onclick = ()=> $('#qr').click();
+$('#qr').onchange = async (e)=>{
+  let file = e.target.files[0];
+  if(!file) return;
+  setStatus('Reading QR...','scanning');
   try{
-    const bmp=await createImageBitmap(f);
-    const max=1400,k=Math.min(1,max/Math.max(bmp.width,bmp.height));
-    const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
-    const x=c.getContext('2d');x.drawImage(bmp,0,0,c.width,c.height);
-    d=x.getImageData(0,0,c.width,c.height);w=c.width;h=c.height;
-  }catch{
-    const img=new Image();img.src=URL.createObjectURL(f);await img.decode();
-    const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
-    const x=c.getContext('2d');x.drawImage(img,0,0);
-    d=x.getImageData(0,0,c.width,c.height);w=c.width;h=c.height;
-  }
-  let q=jsQR(d.data,w,h,{inversionAttempts:"attemptBoth"});
-if(!q){
- c.width=w*2;c.height=h*2;
- ctx.imageSmoothingEnabled=false;
- ctx.drawImage(canvas,0,0,w*2,h*2);
- let d2=ctx.getImageData(0,0,w*2,h*2);
- q=jsQR(d2.data,w*2,h*2,{inversionAttempts:"attemptBoth"});
-}
-  if(!q)q=jsQR(d.data,w,h,{inversionAttempts:"attemptBoth"});
-  if(!q){o.textContent='❌ No QR code found. Try a clearer image.';return;}
-  o.innerHTML=`Decoded: <b>${q.data}</b>`;
-  if(/^https?:\/\//i.test(q.data)){
-    $('link').value=q.data;checkLink();window.scrollTo({top:0,behavior:'smooth'});
-  }else{o.innerHTML+='<br>Not a web link, so nothing to scan.';}
- }catch(e){o.textContent='❌ Could not read this image.';}
- $('#qr').value='';
-};
+    let img = new Image();
+    img.src = URL.createObjectURL(file);
+    await new Promise(r=> img.onload=r);
+    let can = document.createElement('canvas');
+    let con = can.getContext('2d');
+    can.width = img.width;
+    can.height = img.height;
+    con.drawImage(img,0,0);
+    let d = con.getImageData(0,0,can.width,can.height);
 
+    let q = jsQR(d.data,can.width,can.height,{inversionAttempts:"attemptBoth"});
+
+    // blur ho to 2x bada karke try
+    if(!q){
+      can.width = img.width*2;
+      can.height = img.height*2;
+      con.imageSmoothingEnabled=false;
+      con.drawImage(img,0,0,can.width,can.height);
+      let d2 = con.getImageData(0,0,can.width,can.height);
+      q = jsQR(d2.data,can.width,can.height,{inversionAttempts:"attemptBoth"});
+    }
+
+    if(q){
+      $('#linkInput').value = q.data;
+      setStatus('Decoded: '+q.data,'safe');
+      checkLink();
+    }else{
+      setStatus('Could not read - saaf photo lo','danger');
+    }
+  }catch(err){
+    setStatus('Error: '+err.message,'danger');
+  }
+  e.target.value = ''; // taki same image dobara upload ho sake
+};
 // APK
 const PERM={SEND_SMS:3,RECEIVE_SMS:2,READ_SMS:3,BIND_ACCESSIBILITY_SERVICE:4,SYSTEM_ALERT_WINDOW:2,REQUEST_INSTALL_PACKAGES:2,BIND_DEVICE_ADMIN:3,READ_CONTACTS:1,READ_CALL_LOG:2,RECORD_AUDIO:1,READ_PHONE_STATE:1,QUERY_ALL_PACKAGES:1,RECEIVE_BOOT_COMPLETED:1,ACCESS_FINE_LOCATION:1,CAMERA:1,READ_EXTERNAL_STORAGE:0,MANAGE_EXTERNAL_STORAGE:2,BIND_NOTIFICATION_LISTENER_SERVICE:3,CALL_PHONE:1,PROCESS_OUTGOING_CALLS:2};
 $('apkBtn').onclick=()=>$('apk').click();
