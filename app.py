@@ -25,6 +25,7 @@ Render:
   (Procfile with "web: gunicorn app:app" also works)
 """
 
+import base64
 import os
 import io
 import re
@@ -154,7 +155,16 @@ def vt_check():
 
     headers = {"x-apikey": VT_API_KEY}
     try:
-        sub = requests.post(f"{VT_BASE}/urls", headers=headers, data={"url": url}, timeout=15)
+        sub = requests.post(f"{VT_BASE}/urls", data={"url": url}, headers=headers)
+        # 409 matlab URL pehle se scan hai
+        if sub.status_code == 409:
+            url_id = base64.urlsafe_b64encode(url.encode()).decode().strip("=")
+            rep = requests.get(f"{VT_BASE}/urls/{url_id}", headers=headers)
+            rep.raise_for_status()
+            data = rep.json()["data"]
+            stats = data["attributes"]["last_analysis_stats"]
+            return jsonify({"blocked": False, "stats": stats, "cached": True})
+
         sub.raise_for_status()
         analysis_id = sub.json()["data"]["id"]
 
