@@ -108,49 +108,47 @@ function checkLink(){
 $('scanBtn').onclick=$('linkBtn').onclick=checkLink;
 $('link').addEventListener('keydown',e=>{if(e.key==='Enter')checkLink()});
 
-// QR;}
-  
-$('#qrBtn').onclick = ()=> $('#qr').click();
-$('#qr').onchange = async (e)=>{
-  let file = e.target.files[0];
-  if(!file) return;
-  setStatus('Reading QR...','scanning');
+// ---- QR ---- (FIXED: plain ids, no setStatus, correct link input id)
+$('qrBtn').onclick=()=>$('qr').click();
+$('qr').onchange=async(e)=>{
+  const file=e.target.files[0],o=$('qrOut');
+  if(!file)return;
+  o.textContent='⏳ Reading QR...';
   try{
-    let img = new Image();
-    img.src = URL.createObjectURL(file);
-    await new Promise(r=> img.onload=r);
-    let can = document.createElement('canvas');
-    let con = can.getContext('2d');
-    can.width = img.width;
-    can.height = img.height;
+    const img=new Image();
+    img.src=URL.createObjectURL(file);
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej});
+
+    const can=document.createElement('canvas');
+    const con=can.getContext('2d');
+    can.width=img.width;can.height=img.height;
     con.drawImage(img,0,0);
-    let d = con.getImageData(0,0,can.width,can.height);
+    let d=con.getImageData(0,0,can.width,can.height);
+    let q=jsQR(d.data,can.width,can.height,{inversionAttempts:'attemptBoth'});
 
-    let q = jsQR(d.data,can.width,can.height,{inversionAttempts:"attemptBoth"});
-
-    // blur ho to 2x bada karke try
+    // blur/small image ho to 2x upscale karke dobara try
     if(!q){
-      can.width = img.width*2;
-      can.height = img.height*2;
+      can.width=img.width*2;can.height=img.height*2;
       con.imageSmoothingEnabled=false;
       con.drawImage(img,0,0,can.width,can.height);
-      let d2 = con.getImageData(0,0,can.width,can.height);
-      q = jsQR(d2.data,can.width,can.height,{inversionAttempts:"attemptBoth"});
+      const d2=con.getImageData(0,0,can.width,can.height);
+      q=jsQR(d2.data,can.width,can.height,{inversionAttempts:'attemptBoth'});
     }
 
-    if(q){
-      $('#linkInput').value = q.data;
-      setStatus('Decoded: '+q.data,'safe');
-      checkLink();
-    }else{
-      setStatus('Could not read - saaf photo lo','danger');
-    }
+    URL.revokeObjectURL(img.src);
+
+    if(!q){o.textContent='❌ Could not read QR - saaf, closer photo try karo.';return}
+    o.innerHTML='Decoded: <b>'+esc(q.data)+'</b>';
+    $('link').value=q.data;
+    checkLink();
+    window.scrollTo({top:0,behavior:'smooth'});
   }catch(err){
-    setStatus('Error: '+err.message,'danger');
+    o.textContent='❌ Error: '+err.message;
   }
-  e.target.value = ''; // taki same image dobara upload ho sake
+  e.target.value='';
 };
-// APK
+
+// ---- APK ---- (unchanged)
 const PERM={SEND_SMS:3,RECEIVE_SMS:2,READ_SMS:3,BIND_ACCESSIBILITY_SERVICE:4,SYSTEM_ALERT_WINDOW:2,REQUEST_INSTALL_PACKAGES:2,BIND_DEVICE_ADMIN:3,READ_CONTACTS:1,READ_CALL_LOG:2,RECORD_AUDIO:1,READ_PHONE_STATE:1,QUERY_ALL_PACKAGES:1,RECEIVE_BOOT_COMPLETED:1,ACCESS_FINE_LOCATION:1,CAMERA:1,READ_EXTERNAL_STORAGE:0,MANAGE_EXTERNAL_STORAGE:2,BIND_NOTIFICATION_LISTENER_SERVICE:3,CALL_PHONE:1,PROCESS_OUTGOING_CALLS:2};
 $('apkBtn').onclick=()=>$('apk').click();
 $('apk').onchange=async()=>{
