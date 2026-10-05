@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Safety Scanner - Check Link, QR or APK</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#6366f1">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -14,7 +18,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--f
 .bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(600px at 20% 10%,rgba(99,102,241,.25),transparent),radial-gradient(600px at 80% 90%,rgba(236,72,153,.2),transparent),var(--bg)}
 .nav{display:flex;justify-content:space-between;align-items:center;padding:16px 6%;border-bottom:1px solid rgba(255,255,255,.08)}
 .logo{font-weight:900;font-size:21px;background:linear-gradient(90deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-#donate{display:none;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:#fff;border:0;padding:9px 20px;border-radius:24px;font-weight:800;cursor:pointer}
+.navbtns{display:flex;gap:8px;align-items:center}
+#donate{display:none;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:#fff;border:0;padding:9px 16px;border-radius:24px;font-weight:800;cursor:pointer}
+.gear{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:18px;display:grid;place-items:center}
 .hero{text-align:center;padding:56px 20px 10px}
 .hero h1{font-size:48px;font-weight:900;line-height:1.08;letter-spacing:-1.5px}
 .hero p{color:var(--mut);margin:16px auto 0;max-width:620px;font-size:15px;line-height:1.6}
@@ -35,12 +41,38 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--f
 .out{margin-top:12px;font-size:12px;color:var(--mut);word-break:break-word;text-align:left}
 .out b{color:#fff}
 .note{max-width:760px;margin:10px auto 40px;padding:0 20px;text-align:center;color:#64748b;font-size:12px;line-height:1.6}
+.status{color:#a78bfa;font-weight:600}
 @media(max-width:800px){.cards{grid-template-columns:1fr}.hero h1{font-size:32px}.hero{padding-top:36px}}
+
+/* Settings panel */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px}
+.overlay.show{display:flex}
+.panel{background:#11131f;border:1px solid rgba(255,255,255,.12);border-radius:18px;max-width:380px;width:100%;padding:22px;position:relative}
+.panel h2{font-size:19px;margin-bottom:14px}
+.panel .close{position:absolute;top:14px;right:16px;background:none;border:0;color:#94a3b8;font-size:20px;cursor:pointer}
+.panel input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;padding:11px 12px;border-radius:10px;margin-bottom:10px;font-size:14px;outline:0}
+.panel button.primary{width:100%;background:var(--g);border:0;color:#fff;padding:11px;border-radius:10px;font-weight:700;cursor:pointer;margin-top:4px}
+.panel .switch{text-align:center;margin-top:12px;font-size:13px;color:var(--mut)}
+.panel .switch a{color:#a78bfa;cursor:pointer;text-decoration:underline}
+.panel .msg{font-size:13px;margin-top:8px;text-align:center}
+.panel .msg.err{color:#fca5a5}
+.panel .msg.ok{color:#6ee7b7}
+.history-item{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px}
+.history-item b{color:#fff}
+.logged{text-align:center}
+.logged .uname{font-weight:800;font-size:16px;margin:6px 0 14px}
+.panel button.secondary{width:100%;background:transparent;border:1px solid rgba(255,255,255,.2);color:#fff;padding:9px;border-radius:10px;cursor:pointer;margin-top:8px}
 </style>
 </head>
 <body>
 <div class="bg"></div>
-<div class="nav"><div class="logo">🛡️ Safety Scanner</div><button id="donate">Donate ❤️</button></div>
+<div class="nav">
+  <div class="logo">🛡️ Safety Scanner</div>
+  <div class="navbtns">
+    <button id="donate">Donate ❤️</button>
+    <button class="gear" id="gearBtn" title="Settings">⚙️</button>
+  </div>
+</div>
 
 <div class="hero">
 <h1>Check Any Link, QR or APK in Seconds</h1>
@@ -54,11 +86,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--f
 
 <div class="cards">
 <div class="card"><div class="ic">◫</div><h3>QR Scanner</h3><p>Upload a QR image. We decode it and check the link inside.</p><button class="act" id="qrBtn">Scan QR</button><input id="qr" type="file" hidden accept="image/*"><div class="out" id="qrOut"></div></div>
-<div class="card"><div class="ic">🔗</div><h3>Link Scanner</h3><p>Checks URL for missing HTTPS, IP hosts, lookalike brands, shorteners and scam words.</p><button class="act" id="linkBtn">Check Link</button></div>
+<div class="card"><div class="ic">🔗</div><h3>Link Scanner</h3><p>Checks URL for missing HTTPS, IP hosts, lookalike brands, shorteners and scam words — plus Gemini AI.</p><button class="act" id="linkBtn">Check Link</button></div>
 <div class="card"><div class="ic">📱</div><h3>APK Analyzer</h3><p>Reads the APK locally: permissions, file hash and structure. No upload.</p><button class="act" id="apkBtn">Analyze APK</button><input id="apk" type="file" hidden accept=".apk,application/vnd.android.package-archive"><div class="out" id="apkOut"></div></div>
 </div>
 
-<div class="note">This is a heuristic checker, not a guarantee. A "low risk" result does not mean a link or app is safe, so for anything important also check on virustotal.com.</div>
+<div class="note">This is a heuristic + AI checker, not a guarantee. A "low risk" result does not mean a link or app is safe, so for anything important also check on virustotal.com.</div>
+
+<!-- Settings / Sign in overlay -->
+<div class="overlay" id="overlay">
+  <div class="panel" id="panel"></div>
+</div>
 
 <script>
 const UPI=''; // e.g. 'yourname@okicici' to show the Donate button
@@ -96,19 +133,32 @@ function render(el,title,cls,list,extra){
   el.className='res '+cls;
   el.innerHTML='<b class="t">'+title+'</b>'+(list.length?'<ul>'+list.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<div>No warning signs found in the link itself.</div>')+(extra||'');
 }
-function checkLink(){
+async function checkLink(){
   const u=$('link').value;
   if(!u.trim()){$('link').focus();return}
   const a=analyze(u),el=$('res');
   if(a.err){render(el,'⚠️ '+a.err,'mid',[]);return}
   const cls=a.s>=5?'high':a.s>=3?'mid':'low';
   const t=a.s>=5?'🔴 High risk':a.s>=3?'🟠 Medium risk':'🟢 Low risk';
-  render(el,t+' ('+a.s+'/10)',cls,a.r);
+  render(el,t+' ('+a.s+'/10)',cls,a.r,'<div id="aiBox" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.15);font-size:13px"><span class="status">🤖 Asking AI for a deeper check...</span></div>');
+
+  try{
+    const r=await fetch('/ai-scan?url='+encodeURIComponent(u));
+    const d=await r.json();
+    const box=$('aiBox');
+    if(!box)return;
+    if(d.error){box.innerHTML='🤖 AI check unavailable: '+esc(d.error);return}
+    if(d.blocked){box.innerHTML='🤖 '+esc(d.message);return}
+    box.innerHTML='🤖 <b>AI analysis:</b><br>'+esc(d.analysis).replace(/\n/g,'<br>');
+  }catch(err){
+    const box=$('aiBox');
+    if(box)box.innerHTML='🤖 AI check failed: '+esc(err.message);
+  }
 }
 $('scanBtn').onclick=$('linkBtn').onclick=checkLink;
 $('link').addEventListener('keydown',e=>{if(e.key==='Enter')checkLink()});
 
-// ---- QR ---- (FIXED: plain ids, no setStatus, correct link input id)
+// ---- QR ----
 $('qrBtn').onclick=()=>$('qr').click();
 $('qr').onchange=async(e)=>{
   const file=e.target.files[0],o=$('qrOut');
@@ -126,7 +176,6 @@ $('qr').onchange=async(e)=>{
     let d=con.getImageData(0,0,can.width,can.height);
     let q=jsQR(d.data,can.width,can.height,{inversionAttempts:'attemptBoth'});
 
-    // blur/small image ho to 2x upscale karke dobara try
     if(!q){
       can.width=img.width*2;can.height=img.height*2;
       con.imageSmoothingEnabled=false;
@@ -148,7 +197,7 @@ $('qr').onchange=async(e)=>{
   e.target.value='';
 };
 
-// ---- APK ---- (unchanged)
+// ---- APK ----
 const PERM={SEND_SMS:3,RECEIVE_SMS:2,READ_SMS:3,BIND_ACCESSIBILITY_SERVICE:4,SYSTEM_ALERT_WINDOW:2,REQUEST_INSTALL_PACKAGES:2,BIND_DEVICE_ADMIN:3,READ_CONTACTS:1,READ_CALL_LOG:2,RECORD_AUDIO:1,READ_PHONE_STATE:1,QUERY_ALL_PACKAGES:1,RECEIVE_BOOT_COMPLETED:1,ACCESS_FINE_LOCATION:1,CAMERA:1,READ_EXTERNAL_STORAGE:0,MANAGE_EXTERNAL_STORAGE:2,BIND_NOTIFICATION_LISTENER_SERVICE:3,CALL_PHONE:1,PROCESS_OUTGOING_CALLS:2};
 $('apkBtn').onclick=()=>$('apk').click();
 $('apk').onchange=async()=>{
@@ -184,6 +233,526 @@ $('apk').onchange=async()=>{
   }catch(e){o.textContent='❌ Could not read this file. Is it a valid APK?'}
   $('apk').value='';
 };
+
+// ---- Settings / Sign in panel ----
+const overlay=$('overlay'), panel=$('panel');
+function closeOverlay(){overlay.classList.remove('show')}
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeOverlay()});
+
+function loginView(msg){
+  panel.innerHTML=`
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2>🔐 Login</h2>
+    <input id="lu" placeholder="Username">
+    <input id="lp" type="password" placeholder="Password">
+    <button class="primary" id="doLogin">Login</button>
+    <div class="switch">Account nahi hai? <a onclick="signupView()">Sign up</a></div>
+    ${msg?`<div class="msg err">${esc(msg)}</div>`:''}
+  `;
+  $('doLogin').onclick=async()=>{
+    const username=$('lu').value.trim(), password=$('lp').value;
+    const r=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const d=await r.json();
+    if(d.error){loginView(d.error);return}
+    loggedInView(d.username);
+  };
+}
+function signupView(msg){
+  panel.innerHTML=`
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2>✨ Sign Up</h2>
+    <input id="su" placeholder="Username (3-20 chars)">
+    <input id="sp" type="password" placeholder="Password (6+ chars)">
+    <button class="primary" id="doSignup">Create Account</button>
+    <div class="switch">Account hai? <a onclick="loginView()">Login</a></div>
+    ${msg?`<div class="msg err">${esc(msg)}</div>`:''}
+  `;
+  $('doSignup').onclick=async()=>{
+    const username=$('su').value.trim(), password=$('sp').value;
+    const r=await fetch('/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const d=await r.json();
+    if(d.error){signupView(d.error);return}
+    loggedInView(d.username);
+  };
+}
+function loggedInView(username){
+  panel.innerHTML=`
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <div class="logged">
+      <div style="font-size:30px">👤</div>
+      <div class="uname">${esc(username)}</div>
+      <button class="secondary" id="showHistory">📜 My Scan History</button>
+      <button class="secondary" id="doLogout">Logout</button>
+      <div id="histBox" style="margin-top:14px;text-align:left"></div>
+    </div>
+  `;
+  $('doLogout').onclick=async()=>{
+    await fetch('/logout',{method:'POST'});
+    loginView();
+  };
+  $('showHistory').onclick=async()=>{
+    const box=$('histBox');
+    box.innerHTML='<div class="status">Loading...</div>';
+    const r=await fetch('/my-scans');
+    const d=await r.json();
+    if(!d.scans || !d.scans.length){box.innerHTML='<div style="color:#94a3b8;font-size:12px">Abhi koi scan history nahi hai.</div>';return}
+    box.innerHTML=d.scans.map(s=>`<div class="history-item"><b>${esc(s.type.toUpperCase())}</b> — ${esc((s.target||'').slice(0,40))}<br>${esc(s.result||'')} ${s.risk!=null?('• risk '+s.risk+'/10'):''}</div>`).join('');
+  };
+}
+
+$('gearBtn').onclick=async()=>{
+  overlay.classList.add('show');
+  panel.innerHTML='<div class="status" style="text-align:center">Loading...</div>';
+  try{
+    const r=await fetch('/me');
+    const d=await r.json();
+    if(d.logged_in)loggedInView(d.username); else loginView();
+  }catch(e){loginView();}
+};
+
+// PWA service worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
+}
+
+// ====================================================================== //
+// NEW FEATURE (added below, old code above is untouched): Developer API
+// Key button inside Settings. This loggedInView redefinition overrides the
+// one defined earlier in this file and just adds one more button + box.
+// ====================================================================== //
+function loggedInView(username){
+  panel.innerHTML=`
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <div class="logged">
+      <div style="font-size:30px">👤</div>
+      <div class="uname">${esc(username)}</div>
+      <button class="secondary" id="showHistory">📜 My Scan History</button>
+      <button class="secondary" id="showApiKey">🔑 Developer API Key</button>
+      <button class="secondary" id="doLogout">Logout</button>
+      <div id="histBox" style="margin-top:14px;text-align:left"></div>
+      <div id="apiBox" style="margin-top:14px;text-align:left"></div>
+    </div>
+  `;
+  $('doLogout').onclick=async()=>{
+    await fetch('/logout',{method:'POST'});
+    loginView();
+  };
+  $('showHistory').onclick=async()=>{
+    $('apiBox').innerHTML='';
+    const box=$('histBox');
+    box.innerHTML='<div class="status">Loading...</div>';
+    const r=await fetch('/my-scans');
+    const d=await r.json();
+    if(!d.scans || !d.scans.length){box.innerHTML='<div style="color:#94a3b8;font-size:12px">Abhi koi scan history nahi hai.</div>';return}
+    box.innerHTML=d.scans.map(s=>`<div class="history-item"><b>${esc(s.type.toUpperCase())}</b> — ${esc((s.target||'').slice(0,40))}<br>${esc(s.result||'')} ${s.risk!=null?('• risk '+s.risk+'/10'):''}</div>`).join('');
+  };
+  $('showApiKey').onclick=async()=>{
+    $('histBox').innerHTML='';
+    renderApiKeyBox('Loading...');
+    const r=await fetch('/dev/api-key');
+    const d=await r.json();
+    if(d.error){renderApiKeyBox(null,d.error);return}
+    renderApiKeyBox(d.api_key);
+  };
+}
+
+// ====================================================================== //
+// NEW FEATURE (added below, old code above is untouched): Sign in with
+// Google / Sign in with GitHub buttons. This loginView redefinition
+// overrides the one defined earlier in this file.
+// ====================================================================== //
+function loginView(msg){
+  panel.innerHTML=`
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2>🔐 Login</h2>
+    <a href="/auth/google" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#fff;color:#1f1f1f;padding:11px;border-radius:10px;font-weight:700;text-decoration:none;margin-bottom:8px">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5h-1.9V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6 29.6 4 24 4c-7.4 0-13.8 4-17.3 10.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.4-1.9 14.1-5.1l-6.5-5.5C29.6 35 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.6 5.1C9.9 39.8 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5h-1.9V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.4l6.5 5.5C40.9 36.3 44 30.7 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+      Sign in with Google
+    </a>
+    <a href="/auth/github" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#24292e;color:#fff;padding:11px;border-radius:10px;font-weight:700;text-decoration:none;margin-bottom:14px">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="#fff"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      Sign in with GitHub
+    </a>
+    <div style="display:flex;align-items:center;gap:10px;margin:4px 0 12px;color:#64748b;font-size:12px"><div style="flex:1;height:1px;background:rgba(255,255,255,.12)"></div>or with username<div style="flex:1;height:1px;background:rgba(255,255,255,.12)"></div></div>
+    <input id="lu" placeholder="Username">
+    <input id="lp" type="password" placeholder="Password">
+    <button class="primary" id="doLogin">Login</button>
+    <div class="switch">Account nahi hai? <a onclick="signupView()">Sign up</a></div>
+    ${msg?`<div class="msg err">${esc(msg)}</div>`:''}
+  `;
+  $('doLogin').onclick=async()=>{
+    const username=$('lu').value.trim(), password=$('lp').value;
+    const r=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const d=await r.json();
+    if(d.error){loginView(d.error);return}
+    loggedInView(d.username);
+  };
+}
+
+function renderApiKeyBox(key, err){
+  const box=$('apiBox');
+  if(err){box.innerHTML=`<div class="msg err">${esc(err)}</div>`;return}
+  if(key==='Loading...'){box.innerHTML='<div class="status">Loading...</div>';return}
+  box.innerHTML=`
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:6px">Apni key se scan endpoints call karo (header <code>X-API-Key</code>):</div>
+    <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:8px;font-family:monospace;font-size:12px;word-break:break-all;margin-bottom:8px">${esc(key)}</div>
+    <div style="display:flex;gap:8px">
+      <button class="secondary" style="margin-top:0" id="copyKey">📋 Copy</button>
+      <button class="secondary" style="margin-top:0" id="regenKey">♻️ Regenerate</button>
+    </div>
+    <div style="font-size:11px;color:#64748b;margin-top:10px;line-height:1.5">
+      Example:<br>
+      <code style="word-break:break-all">curl -H "X-API-Key: ${esc(key)}" "${location.origin}/vt?url=https://example.com"</code>
+    </div>
+  `;
+  $('copyKey').onclick=()=>{navigator.clipboard.writeText(key);$('copyKey').textContent='✅ Copied';setTimeout(()=>$('copyKey').textContent='📋 Copy',1500)};
+  $('regenKey').onclick=async()=>{
+    renderApiKeyBox('Loading...');
+    const r=await fetch('/dev/api-key/regenerate',{method:'POST'});
+    const d=await r.json();
+    if(d.error){renderApiKeyBox(null,d.error);return}
+    renderApiKeyBox(d.api_key);
+  };
+}
+
+// ====================================================================== //
+// NEW FEATURE (added below, old code above is untouched): nicer "Welcome
+// back" login card design (password eye-toggle), still wired to the same
+// /login, /auth/google, /auth/github backend routes. Overrides loginView.
+// ====================================================================== //
+function togglePass(id, el){
+  const i=document.getElementById(id);
+  i.type = i.type==='password' ? 'text' : 'password';
+  el.textContent = i.type==='password' ? '👁️' : '🫣';
+}
+
+function loginView(msg){
+  panel.innerHTML = `
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2 style="text-align:center;color:white;font-size:26px;margin-bottom:4px">Welcome back</h2>
+    <p style="text-align:center;color:#888;font-size:13px;margin:0 0 18px">Enter your credentials to continue</p>
+
+    <input id="loginUser" type="text" placeholder="Username or Gmail" style="width:100%;padding:12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;margin-bottom:12px;box-sizing:border-box">
+
+    <div style="position:relative;margin-bottom:4px">
+      <input id="loginPass" type="password" placeholder="Password" style="width:100%;padding:12px 40px 12px 12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;box-sizing:border-box">
+      <span onclick="togglePass('loginPass', this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer">👁️</span>
+    </div>
+    ${msg?`<div class="msg err" style="margin-top:8px">${esc(msg)}</div>`:''}
+
+    <button id="doLogin" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:10px;background:linear-gradient(90deg,#8a5cff,#ff7ac6);color:white;font-weight:bold;font-size:16px;cursor:pointer">Login</button>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0;color:#777;font-size:13px">
+      <div style="flex:1;height:1px;background:#333"></div>
+      <span>or continue with</span>
+      <div style="flex:1;height:1px;background:#333"></div>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <a href="/auth/google" style="flex:1;padding:10px;border-radius:10px;background:white;border:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:#1f1f1f">
+        <span style="color:#4285F4;font-size:18px;font-weight:800">G</span> Google
+      </a>
+      <a href="/auth/github" style="flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid #555;color:white;font-weight:600;text-align:center;text-decoration:none">GitHub</a>
+    </div>
+
+    <p style="text-align:center;color:#888;font-size:13px;margin-top:16px">Account nahi hai? <a style="color:#c27aff;text-decoration:underline;cursor:pointer" onclick="signupView()">Sign up</a></p>
+  `;
+  $('doLogin').onclick=async()=>{
+    const username=$('loginUser').value.trim(), password=$('loginPass').value;
+    const r=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const d=await r.json();
+    if(d.error){loginView(d.error);return}
+    loggedInView(d.username);
+  };
+}
+
+// ====================================================================== //
+// NEW FEATURE (added below, old code above is untouched): a dedicated
+// "🔑 API" button, separate from the ⚙️ Settings gear. Tapping it shows the
+// same Welcome-back login/signup screen, but after a successful login or
+// signup it jumps straight to the Developer API Key (skips the general
+// settings menu with history). Also shows the account's personal ID.
+// ====================================================================== //
+window.apiEntryFlow = false;
+
+// Add the button next to the gear icon without touching the old HTML.
+(function addApiNavButton(){
+  const btn = document.createElement('button');
+  btn.id = 'apiNavBtn';
+  btn.className = 'gear';
+  btn.title = 'Developer API';
+  btn.style.width = 'auto';
+  btn.style.borderRadius = '18px';
+  btn.style.padding = '0 14px';
+  btn.style.fontSize = '13px';
+  btn.style.fontWeight = '700';
+  btn.textContent = '🔑 API';
+  const nav = document.querySelector('.navbtns');
+  nav.insertBefore(btn, $('gearBtn'));
+
+  btn.onclick = async () => {
+    window.apiEntryFlow = true;
+    overlay.classList.add('show');
+    panel.innerHTML = '<div class="status" style="text-align:center">Loading...</div>';
+    try {
+      const r = await fetch('/me');
+      const d = await r.json();
+      if (d.logged_in) showDevKeyOnly(d.username, d.id);
+      else loginView();
+    } catch (e) { loginView(); }
+  };
+})();
+
+// Keep the ⚙️ gear icon going to the normal menu (not the API-only view).
+$('gearBtn').onclick = async () => {
+  window.apiEntryFlow = false;
+  overlay.classList.add('show');
+  panel.innerHTML = '<div class="status" style="text-align:center">Loading...</div>';
+  try {
+    const r = await fetch('/me');
+    const d = await r.json();
+    if (d.logged_in) loggedInView(d.username); else loginView();
+  } catch (e) { loginView(); }
+};
+
+function showDevKeyOnly(username, id){
+  panel.innerHTML = `
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <div class="logged">
+      <div style="font-size:30px">🔑</div>
+      <div class="uname">${esc(username)}</div>
+      <div style="color:#64748b;font-size:12px;margin-bottom:14px">Your ID: #${esc(String(id))}</div>
+      <div id="apiBox" style="text-align:left"></div>
+    </div>
+  `;
+  renderApiKeyBox('Loading...');
+  fetch('/dev/api-key').then(r=>r.json()).then(d=>{
+    if(d.error){renderApiKeyBox(null,d.error);return}
+    renderApiKeyBox(d.api_key);
+  });
+}
+
+// Override loginView again: after success, go to the API-key-only view
+// if the person arrived via the 🔑 API button, else the normal menu.
+function loginView(msg){
+  panel.innerHTML = `
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2 style="text-align:center;color:white;font-size:26px;margin-bottom:4px">Welcome back</h2>
+    <p style="text-align:center;color:#888;font-size:13px;margin:0 0 18px">Enter your credentials to continue</p>
+
+    <input id="loginUser" type="text" placeholder="Username or Gmail" style="width:100%;padding:12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;margin-bottom:12px;box-sizing:border-box">
+
+    <div style="position:relative;margin-bottom:4px">
+      <input id="loginPass" type="password" placeholder="Password" style="width:100%;padding:12px 40px 12px 12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;box-sizing:border-box">
+      <span onclick="togglePass('loginPass', this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer">👁️</span>
+    </div>
+    ${msg?`<div class="msg err" style="margin-top:8px">${esc(msg)}</div>`:''}
+
+    <button id="doLogin" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:10px;background:linear-gradient(90deg,#8a5cff,#ff7ac6);color:white;font-weight:bold;font-size:16px;cursor:pointer">Login</button>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0;color:#777;font-size:13px">
+      <div style="flex:1;height:1px;background:#333"></div>
+      <span>or continue with</span>
+      <div style="flex:1;height:1px;background:#333"></div>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <a href="/auth/google" style="flex:1;padding:10px;border-radius:10px;background:white;border:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:#1f1f1f">
+        <span style="color:#4285F4;font-size:18px;font-weight:800">G</span> Google
+      </a>
+      <a href="/auth/github" style="flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid #555;color:white;font-weight:600;text-align:center;text-decoration:none">GitHub</a>
+    </div>
+
+    <p style="text-align:center;color:#888;font-size:13px;margin-top:16px">Account nahi hai? <a style="color:#c27aff;text-decoration:underline;cursor:pointer" onclick="signupView()">Sign up</a></p>
+  `;
+  $('doLogin').onclick=async()=>{
+    const username=$('loginUser').value.trim(), password=$('loginPass').value;
+    const r=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const d=await r.json();
+    if(d.error){loginView(d.error);return}
+    if(window.apiEntryFlow){
+      const me=await (await fetch('/me')).json();
+      showDevKeyOnly(me.username, me.id);
+    } else {
+      loggedInView(d.username);
+    }
+  };
+}
+
+// Override signupView too, with the same branching after success.
+function signupView(msg){
+  panel.innerHTML=`
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2 style="text-align:center;color:white;font-size:24px;margin-bottom:4px">✨ Create account</h2>
+    <p style="text-align:center;color:#888;font-size:13px;margin:0 0 18px">Takes a few seconds — no card needed</p>
+    <input id="su" placeholder="Username (3-20 chars)" style="width:100%;padding:12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;margin-bottom:12px;box-sizing:border-box">
+    <input id="sp" type="password" placeholder="Password (6+ chars)" style="width:100%;padding:12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;margin-bottom:4px;box-sizing:border-box">
+    ${msg?`<div class="msg err" style="margin-top:8px">${esc(msg)}</div>`:''}
+    <button id="doSignup" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:10px;background:linear-gradient(90deg,#8a5cff,#ff7ac6);color:white;font-weight:bold;font-size:16px;cursor:pointer">Create Account</button>
+    <div class="switch" style="margin-top:12px">Account hai? <a onclick="loginView()">Login</a></div>
+  `;
+  $('doSignup').onclick=async()=>{
+    const username=$('su').value.trim(), password=$('sp').value;
+    const r=await fetch('/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const d=await r.json();
+    if(d.error){signupView(d.error);return}
+    if(window.apiEntryFlow){
+      const me=await (await fetch('/me')).json();
+      showDevKeyOnly(me.username, me.id);
+    } else {
+      loggedInView(d.username);
+    }
+  };
+}
+
+// ====================================================================== //
+// NEW FEATURE (added below, old code above is untouched): tapping the
+// ⚙️ Settings gear now shows exactly 2 options right away (API Key,
+// History) without checking login first. Only after picking one of the
+// 2 options does it ask to log in (if not already logged in).
+// ====================================================================== //
+window.pendingSettingOption = null; // 'apikey' | 'history' | null
+
+function settingsMenuView(){
+  panel.innerHTML = `
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2 style="text-align:center;margin-bottom:16px">⚙️ Settings</h2>
+    <button class="secondary" style="margin-top:0" id="optApiKey">🔑 Developer API Key</button>
+    <button class="secondary" id="optHistory">📜 Scan History</button>
+  `;
+  $('optApiKey').onclick=()=>openSettingOption('apikey');
+  $('optHistory').onclick=()=>openSettingOption('history');
+}
+
+async function openSettingOption(kind){
+  window.pendingSettingOption = kind;
+  panel.innerHTML = '<div class="status" style="text-align:center">Loading...</div>';
+  try{
+    const r=await fetch('/me');
+    const d=await r.json();
+    if(d.logged_in){
+      if(kind==='apikey') showDevKeyOnly(d.username, d.id);
+      else showHistoryOnly(d.username);
+    } else {
+      loginView();
+    }
+  }catch(e){ loginView(); }
+}
+
+function showHistoryOnly(username){
+  panel.innerHTML = `
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <div class="logged">
+      <div style="font-size:30px">📜</div>
+      <div class="uname">${esc(username)}</div>
+      <div id="histBox" style="margin-top:10px;text-align:left"></div>
+    </div>
+  `;
+  const box=$('histBox');
+  box.innerHTML='<div class="status">Loading...</div>';
+  fetch('/my-scans').then(r=>r.json()).then(d=>{
+    if(!d.scans || !d.scans.length){box.innerHTML='<div style="color:#94a3b8;font-size:12px">Abhi koi scan history nahi hai.</div>';return}
+    box.innerHTML=d.scans.map(s=>`<div class="history-item"><b>${esc(s.type.toUpperCase())}</b> — ${esc((s.target||'').slice(0,40))}<br>${esc(s.result||'')} ${s.risk!=null?('• risk '+s.risk+'/10'):''}</div>`).join('');
+  });
+}
+
+// Gear now opens the 2-option menu immediately (no login check up front).
+$('gearBtn').onclick = () => {
+  window.apiEntryFlow = false;
+  overlay.classList.add('show');
+  settingsMenuView();
+};
+
+// After login/signup success, go to whichever of the 2 options was
+// picked (apikey / history); fall back to the API-key view otherwise
+// (covers the dedicated top "🔑 API" button flow).
+function loginView(msg){
+  panel.innerHTML = `
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2 style="text-align:center;color:white;font-size:26px;margin-bottom:4px">Welcome back</h2>
+    <p style="text-align:center;color:#888;font-size:13px;margin:0 0 18px">Enter your credentials to continue</p>
+
+    <input id="loginUser" type="text" placeholder="Username or Gmail" style="width:100%;padding:12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;margin-bottom:12px;box-sizing:border-box">
+
+    <div style="position:relative;margin-bottom:4px">
+      <input id="loginPass" type="password" placeholder="Password" style="width:100%;padding:12px 40px 12px 12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;box-sizing:border-box">
+      <span onclick="togglePass('loginPass', this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer">👁️</span>
+    </div>
+    ${msg?`<div class="msg err" style="margin-top:8px">${esc(msg)}</div>`:''}
+
+    <button id="doLogin" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:10px;background:linear-gradient(90deg,#8a5cff,#ff7ac6);color:white;font-weight:bold;font-size:16px;cursor:pointer">Login</button>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0;color:#777;font-size:13px">
+      <div style="flex:1;height:1px;background:#333"></div>
+      <span>or continue with</span>
+      <div style="flex:1;height:1px;background:#333"></div>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <a href="/auth/google" style="flex:1;padding:10px;border-radius:10px;background:white;border:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:#1f1f1f">
+        <span style="color:#4285F4;font-size:18px;font-weight:800">G</span> Google
+      </a>
+      <a href="/auth/github" style="flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid #555;color:white;font-weight:600;text-align:center;text-decoration:none">GitHub</a>
+    </div>
+
+    <p style="text-align:center;color:#888;font-size:13px;margin-top:16px">Account nahi hai? <a style="color:#c27aff;text-decoration:underline;cursor:pointer" onclick="signupView()">Sign up</a></p>
+  `;
+  $('doLogin').onclick=async()=>{
+    const username=$('loginUser').value.trim(), password=$('loginPass').value;
+    const r=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const d=await r.json();
+    if(d.error){loginView(d.error);return}
+    const me=await (await fetch('/me')).json();
+    if(window.pendingSettingOption==='history') showHistoryOnly(me.username);
+    else showDevKeyOnly(me.username, me.id);
+  };
+}
+
+function signupView(msg){
+  panel.innerHTML=`
+    <button class="close" onclick="closeOverlay()">✕</button>
+    <h2 style="text-align:center;color:white;font-size:24px;margin-bottom:4px">✨ Create account</h2>
+    <p style="text-align:center;color:#888;font-size:13px;margin:0 0 18px">Takes a few seconds — no card needed</p>
+    <input id="su" placeholder="Username (3-20 chars)" style="width:100%;padding:12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;margin-bottom:12px;box-sizing:border-box">
+    <input id="sp" type="password" placeholder="Password (6+ chars)" style="width:100%;padding:12px;border-radius:10px;background:#12121a;border:1px solid #555;color:white;margin-bottom:4px;box-sizing:border-box">
+    ${msg?`<div class="msg err" style="margin-top:8px">${esc(msg)}</div>`:''}
+    <button id="doSignup" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:10px;background:linear-gradient(90deg,#8a5cff,#ff7ac6);color:white;font-weight:bold;font-size:16px;cursor:pointer">Create Account</button>
+    <div class="switch" style="margin-top:12px">Account hai? <a onclick="loginView()">Login</a></div>
+  `;
+  $('doSignup').onclick=async()=>{
+    const username=$('su').value.trim(), password=$('sp').value;
+    const r=await fetch('/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const d=await r.json();
+    if(d.error){signupView(d.error);return}
+    const me=await (await fetch('/me')).json();
+    if(window.pendingSettingOption==='history') showHistoryOnly(me.username);
+    else showDevKeyOnly(me.username, me.id);
+  };
+}
+
+// The dedicated top "🔑 API" button still jumps straight to the API key
+// (no 2-option menu), consistent with it being explicitly labeled API.
+$('apiNavBtn').onclick = async () => {
+  window.pendingSettingOption = 'apikey';
+  overlay.classList.add('show');
+  panel.innerHTML = '<div class="status" style="text-align:center">Loading...</div>';
+  try {
+    const r = await fetch('/me');
+    const d = await r.json();
+    if (d.logged_in) showDevKeyOnly(d.username, d.id);
+    else loginView();
+  } catch (e) { loginView(); }
+};
+
+// ====================================================================== //
+// NEW FEATURE (added below, old code above is untouched): hide the
+// standalone top "🔑 API" button. Only ⚙️ Settings (with its 2-option
+// menu) is shown now.
+// ====================================================================== //
+(function hideApiNavButton(){
+  const btn = document.getElementById('apiNavBtn');
+  if (btn) btn.style.display = 'none';
+})();
 </script>
 </body>
 </html>
