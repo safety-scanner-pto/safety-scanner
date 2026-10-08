@@ -4,10 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Safety Scanner - Check Link, QR or APK</title>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#6366f1">
-<link rel="icon" href="/icon-192.png">
-<link rel="apple-touch-icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -18,9 +14,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--f
 .bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(600px at 20% 10%,rgba(99,102,241,.25),transparent),radial-gradient(600px at 80% 90%,rgba(236,72,153,.2),transparent),var(--bg)}
 .nav{display:flex;justify-content:space-between;align-items:center;padding:16px 6%;border-bottom:1px solid rgba(255,255,255,.08)}
 .logo{font-weight:900;font-size:21px;background:linear-gradient(90deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.navbtns{display:flex;gap:8px;align-items:center}
-#donate{display:none;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:#fff;border:0;padding:9px 16px;border-radius:24px;font-weight:800;cursor:pointer}
-.gear{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:18px;display:grid;place-items:center}
 .hero{text-align:center;padding:56px 20px 10px}
 .hero h1{font-size:48px;font-weight:900;line-height:1.08;letter-spacing:-1.5px}
 .hero p{color:var(--mut);margin:16px auto 0;max-width:620px;font-size:15px;line-height:1.6}
@@ -43,36 +36,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--f
 .note{max-width:760px;margin:10px auto 40px;padding:0 20px;text-align:center;color:#64748b;font-size:12px;line-height:1.6}
 .status{color:#a78bfa;font-weight:600}
 @media(max-width:800px){.cards{grid-template-columns:1fr}.hero h1{font-size:32px}.hero{padding-top:36px}}
-
-/* Settings panel */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px}
-.overlay.show{display:flex}
-.panel{background:#11131f;border:1px solid rgba(255,255,255,.12);border-radius:18px;max-width:380px;width:100%;padding:22px;position:relative}
-.panel h2{font-size:19px;margin-bottom:14px}
-.panel .close{position:absolute;top:14px;right:16px;background:none;border:0;color:#94a3b8;font-size:20px;cursor:pointer}
-.panel input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;padding:11px 12px;border-radius:10px;margin-bottom:10px;font-size:14px;outline:0}
-.panel button.primary{width:100%;background:var(--g);border:0;color:#fff;padding:11px;border-radius:10px;font-weight:700;cursor:pointer;margin-top:4px}
-.panel .switch{text-align:center;margin-top:12px;font-size:13px;color:var(--mut)}
-.panel .switch a{color:#a78bfa;cursor:pointer;text-decoration:underline}
-.panel .msg{font-size:13px;margin-top:8px;text-align:center}
-.panel .msg.err{color:#fca5a5}
-.panel .msg.ok{color:#6ee7b7}
-.history-item{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px}
-.history-item b{color:#fff}
-.logged{text-align:center}
-.logged .uname{font-weight:800;font-size:16px;margin:6px 0 14px}
-.panel button.secondary{width:100%;background:transparent;border:1px solid rgba(255,255,255,.2);color:#fff;padding:9px;border-radius:10px;cursor:pointer;margin-top:8px}
 </style>
 </head>
 <body>
 <div class="bg"></div>
-<div class="nav">
-  <div class="logo">🛡️ Safety Scanner</div>
-  <div class="navbtns">
-    <button id="donate">Donate ❤️</button>
-    <button class="gear" id="gearBtn" title="Settings">⚙️</button>
-  </div>
-</div>
+<div class="nav"><div class="logo">🛡️ Safety Scanner</div></div>
 
 <div class="hero">
 <h1>Check Any Link, QR or APK in Seconds</h1>
@@ -92,16 +60,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--f
 
 <div class="note">This is a heuristic + AI checker, not a guarantee. A "low risk" result does not mean a link or app is safe, so for anything important also check on virustotal.com.</div>
 
-<!-- Settings / Sign in overlay -->
-<div class="overlay" id="overlay">
-  <div class="panel" id="panel"></div>
-</div>
-
 <script>
-const UPI=''; // e.g. 'yourname@okicici' to show the Donate button
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-if(UPI){const d=$('donate');d.style.display='block';d.onclick=()=>location.href='upi://pay?pa='+encodeURIComponent(UPI)+'&pn=SafetyScanner&cu=INR'}
 
 const SHORT=/^(bit\.ly|tinyurl\.com|t\.co|goo\.gl|is\.gd|cutt\.ly|rb\.gy|ow\.ly|shorturl\.at)$/;
 const BADTLD=/\.(zip|mov|tk|ml|ga|cf|gq|xyz|top|click|work|country|loan|icu)$/;
@@ -148,7 +109,6 @@ async function checkLink(){
     const box=$('aiBox');
     if(!box)return;
     if(d.error){box.innerHTML='🤖 AI check unavailable: '+esc(d.error);return}
-    if(d.blocked){box.innerHTML='🤖 '+esc(d.message);return}
     box.innerHTML='🤖 <b>AI analysis:</b><br>'+esc(d.analysis).replace(/\n/g,'<br>');
   }catch(err){
     const box=$('aiBox');
@@ -233,119 +193,6 @@ $('apk').onchange=async()=>{
   }catch(e){o.textContent='❌ Could not read this file. Is it a valid APK?'}
   $('apk').value='';
 };
-
-// ---- Settings / Sign in panel ----
-const overlay=$('overlay'), panel=$('panel');
-function closeOverlay(){overlay.classList.remove('show')}
-overlay.addEventListener('click',e=>{if(e.target===overlay)closeOverlay()});
-
-function loginView(msg){
-  panel.innerHTML=`
-    <button class="close" onclick="closeOverlay()">✕</button>
-    <h2>🔐 Login</h2>
-    <input id="lu" placeholder="Username">
-    <input id="lp" type="password" placeholder="Password">
-    <button class="primary" id="doLogin">Login</button>
-    <div class="switch">Account nahi hai? <a onclick="signupView()">Sign up</a></div>
-    ${msg?`<div class="msg err">${esc(msg)}</div>`:''}
-  `;
-  $('doLogin').onclick=async()=>{
-    const username=$('lu').value.trim(), password=$('lp').value;
-    const r=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
-    const d=await r.json();
-    if(d.error){loginView(d.error);return}
-    loggedInView(d.username);
-  };
-}
-function signupView(msg){
-  panel.innerHTML=`
-    <button class="close" onclick="closeOverlay()">✕</button>
-    <h2>✨ Sign Up</h2>
-    <input id="su" placeholder="Username (3-20 chars)">
-    <input id="sp" type="password" placeholder="Password (6+ chars)">
-    <button class="primary" id="doSignup">Create Account</button>
-    <div class="switch">Account hai? <a onclick="loginView()">Login</a></div>
-    ${msg?`<div class="msg err">${esc(msg)}</div>`:''}
-  `;
-  $('doSignup').onclick=async()=>{
-    const username=$('su').value.trim(), password=$('sp').value;
-    const r=await fetch('/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
-    const d=await r.json();
-    if(d.error){signupView(d.error);return}
-    loggedInView(d.username);
-  };
-}
-function loggedInView(username){
-  panel.innerHTML=`
-    <button class="close" onclick="closeOverlay()">✕</button>
-    <div class="logged">
-      <div style="font-size:30px">👤</div>
-      <div class="uname">${esc(username)}</div>
-      <button class="secondary" id="showHistory">📜 My Scan History</button>
-      <button class="secondary" id="doLogout">Logout</button>
-      <div id="histBox" style="margin-top:14px;text-align:left"></div>
-    </div>
-  `;
-  $('doLogout').onclick=async()=>{
-    await fetch('/logout',{method:'POST'});
-    loginView();
-  };
-  $('showHistory').onclick=async()=>{
-    const box=$('histBox');
-    box.innerHTML='<div class="status">Loading...</div>';
-    const r=await fetch('/my-scans');
-    const d=await r.json();
-    if(!d.scans || !d.scans.length){box.innerHTML='<div style="color:#94a3b8;font-size:12px">Abhi koi scan history nahi hai.</div>';return}
-    box.innerHTML=d.scans.map(s=>`<div class="history-item"><b>${esc(s.type.toUpperCase())}</b> — ${esc((s.target||'').slice(0,40))}<br>${esc(s.result||'')} ${s.risk!=null?('• risk '+s.risk+'/10'):''}</div>`).join('');
-  };
-}
-
-$('gearBtn').onclick=async()=>{
-  overlay.classList.add('show');
-  panel.innerHTML='<div class="status" style="text-align:center">Loading...</div>';
-  try{
-    const r=await fetch('/me');
-    const d=await r.json();
-    if(d.logged_in)loggedInView(d.username); else loginView();
-  }catch(e){loginView();}
-};
-
-// PWA service worker
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/service-worker.js').catch(()=>{});
-}
-
-// ====================================================================== //
-// NEW FEATURE (added below, old code above is untouched): Developer API
-// Key button inside Settings. This loggedInView redefinition overrides the
-// one defined earlier in this file and just adds one more button + box.
-// ====================================================================== //
-function loggedInView(username){
-  panel.innerHTML=`
-    <button class="close" onclick="closeOverlay()">✕</button>
-    <div class="logged">
-      <div style="font-size:30px">👤</div>
-      <div class="uname">${esc(username)}</div>
-      <button class="secondary" id="showHistory">📜 My Scan History</button>
-      <button class="secondary" id="showApiKey">🔑 Developer API Key</button>
-      <button class="secondary" id="doLogout">Logout</button>
-      <div id="histBox" style="margin-top:14px;text-align:left"></div>
-      <div id="apiBox" style="margin-top:14px;text-align:left"></div>
-    </div>
-  `;
-  $('doLogout').onclick=async()=>{
-    await fetch('/logout',{method:'POST'});
-    loginView();
-  };
-  $('showHistory').onclick=async()=>{
-    $('apiBox').innerHTML='';
-    const box=$('histBox');
-    box.innerHTML='<div class="status">Loading...</div>';
-    const r=await fetch('/my-scans');
-    const d=await r.json();
-    if(!d.scans || !d.scans.length){box.innerHTML='<div style="color:#94a3b8;font-size:12px">Abhi koi scan history nahi hai.</div>';return}
-    box.innerHTML=d.scans.map(s=>`<div class="history-item"><b>${esc(s.type.toUpperCase())}</b> — ${esc((s.target||'').slice(0,40))}<br>${esc(s.result||'')} ${s.risk!=null?('• risk '+s.risk+'/10'):''}</div>`).join('');
-  };
-  $('showApiKey').onclick=async()=>{
-    $('histBox').innerHTML='';
-  
+</script>
+</body>
+</html>
